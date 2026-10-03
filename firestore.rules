@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health check / connection test
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Security Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validators
+    function isValidUserProfile(data, userId) {
+      return data.userId == userId &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.email is string && data.email.size() <= 150 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500)) &&
+             (!('theme' in data) || (data.theme is string && data.theme in ['dark', 'light', 'blue', 'green', 'purple', 'orange', 'pink'])) &&
+             (!('activeAccountId' in data) || (data.activeAccountId is string && data.activeAccountId.size() <= 64));
+    }
+
+    function isValidAccount(data, userId) {
+      return data.userId == userId &&
+             data.id is string && data.id.size() <= 64 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.icon is string && data.icon.size() <= 16;
+    }
+
+    function isValidEntry(data, userId) {
+      return data.userId == userId &&
+             data.id is string && data.id.size() <= 64 &&
+             data.accountId is string && data.accountId.size() <= 64 &&
+             data.type in ['in', 'out'] &&
+             data.amount is number && data.amount > 0 && data.amount <= 100000000000 &&
+             data.date is string && data.date.size() <= 50 &&
+             (!('details' in data) || (data.details is string && data.details.size() <= 250));
+    }
+
+    function isValidTrash(data, userId) {
+      return data.userId == userId &&
+             data.id is string && data.id.size() <= 64 &&
+             data.itemType in ['entry', 'account'] &&
+             data.deletedAt is string && data.deletedAt.size() <= 50;
+    }
+
+    // User Profile
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidUserProfile(incoming(), userId) && incoming().userId == existing().userId;
+      allow delete: if false;
+
+      // User Accounts Subcollection
+      match /accounts/{accountId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(accountId) && isValidAccount(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(accountId) && isValidAccount(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // User Entries Subcollection
+      match /entries/{entryId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(entryId) && isValidEntry(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(entryId) && isValidEntry(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // User Trash Subcollection
+      match /trash/{trashId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(trashId) && isValidTrash(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(trashId) && isValidTrash(incoming(), userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

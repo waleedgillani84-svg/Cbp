@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and ledger preferences",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 150
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar photo URL",
+          "maxLength": 500
+        },
+        "theme": {
+          "type": "string",
+          "description": "Selected theme color",
+          "enum": ["dark", "light", "blue", "green", "purple", "orange", "pink"]
+        },
+        "activeAccountId": {
+          "type": "string",
+          "description": "ID of currently active account",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update",
+          "maxLength": 50
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "Financial ledger account (e.g. Main Cash, Bank)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Account unique identifier",
+          "maxLength": 64
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Account name",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "icon": {
+          "type": "string",
+          "description": "Emoji or icon for the account",
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update",
+          "maxLength": 50
+        }
+      },
+      "required": ["id", "userId", "name", "icon"]
+    },
+    "Entry": {
+      "title": "Entry",
+      "description": "Cash transaction entry (cash in or cash out)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Transaction entry unique ID",
+          "maxLength": 64
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "accountId": {
+          "type": "string",
+          "description": "Associated account ID",
+          "maxLength": 64
+        },
+        "type": {
+          "type": "string",
+          "description": "Transaction type: in (income) or out (expense)",
+          "enum": ["in", "out"]
+        },
+        "amount": {
+          "type": "number",
+          "description": "Transaction amount in Rs"
+        },
+        "details": {
+          "type": "string",
+          "description": "Description, category or person name",
+          "maxLength": 250
+        },
+        "date": {
+          "type": "string",
+          "description": "Transaction ISO date string",
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update",
+          "maxLength": 50
+        }
+      },
+      "required": ["id", "userId", "accountId", "type", "amount", "date"]
+    },
+    "TrashItem": {
+      "title": "TrashItem",
+      "description": "Deleted transaction or account in recycle bin",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Trash item unique ID",
+          "maxLength": 64
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "itemType": {
+          "type": "string",
+          "description": "Type of item deleted: entry or account",
+          "enum": ["entry", "account"]
+        },
+        "deletedAt": {
+          "type": "string",
+          "description": "ISO timestamp when item was moved to trash",
+          "maxLength": 50
+        }
+      },
+      "required": ["id", "userId", "itemType", "deletedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profile and ledger configuration"
+    },
+    "/users/{userId}/accounts/{accountId}": {
+      "schema": "Account",
+      "description": "Stores user financial accounts"
+    },
+    "/users/{userId}/entries/{entryId}": {
+      "schema": "Entry",
+      "description": "Stores user transaction entries"
+    },
+    "/users/{userId}/trash/{trashId}": {
+      "schema": "TrashItem",
+      "description": "Stores user recycled items"
+    }
+  }
+}
